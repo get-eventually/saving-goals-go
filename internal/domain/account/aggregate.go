@@ -76,6 +76,9 @@ func (a *Account) Apply(event eventually.Event) error {
 	case SavingGoalWasChanged:
 		a.savingGoal = &evt.SavingGoal
 
+	case ThresholdWasSet:
+		a.savingGoal.Thresholds = append(a.savingGoal.Thresholds, evt.Threshold)
+
 	default:
 		return fmt.Errorf("account: unsupported event received")
 	}
