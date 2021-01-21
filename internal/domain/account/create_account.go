@@ -21,7 +21,7 @@ type CreateCommandHandler struct {
 	Repository *aggregate.Repository
 }
 
-// CommandType returns a CreateCommand instance to bind to this command type.
+// CommandType returns a CreateCommand instance to bind to this Handler.
 func (CreateCommandHandler) CommandType() command.Command { return CreateCommand{} }
 
 // Handle handles a CreateCommand message, by trying to create a new Account
