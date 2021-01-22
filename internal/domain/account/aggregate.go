@@ -64,6 +64,13 @@ type ThresholdWasSet struct {
 	Threshold float64
 }
 
+// TransactionWasRecorded is the Domain Event triggered by the Aggregate
+// when a new transaction involving the Account has taken place, modifying
+// the Account's Balance.
+type TransactionWasRecorded struct {
+	Amount float64
+}
+
 // Apply applies the Domain Event received onto the Aggregate Root
 // by mutating the Root's state accordingly.
 func (a *Account) Apply(event eventually.Event) error {
@@ -78,6 +85,9 @@ func (a *Account) Apply(event eventually.Event) error {
 
 	case ThresholdWasSet:
 		a.savingGoal.Thresholds = append(a.savingGoal.Thresholds, evt.Threshold)
+
+	case TransactionWasRecorded:
+		a.balance += evt.Amount
 
 	default:
 		return fmt.Errorf("account: unsupported event received")
@@ -150,6 +160,20 @@ func (a *Account) SetNewThreshold(threshold float64) error {
 
 	if err != nil {
 		return fmt.Errorf("account.SetNewThreshold: failed to record domain even: %w", err)
+	}
+
+	return nil
+}
+
+// RecordTransaction records a new transaction of the specified amount,
+// updating the Account's balance accordingly.
+func (a *Account) RecordTransaction(amount float64) error {
+	err := aggregate.RecordThat(a, eventually.Event{
+		Payload: TransactionWasRecorded{Amount: amount},
+	})
+
+	if err != nil {
+		return fmt.Errorf("account.RecordTransaction: failed to record domain even: %w", err)
 	}
 
 	return nil
