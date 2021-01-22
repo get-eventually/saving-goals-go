@@ -58,6 +58,10 @@ type SavingGoalWasChanged struct {
 	SavingGoal saving.Goal
 }
 
+// SavingGoalWasDisabled is the Domain Event triggered by the Aggregate
+// the previously-set Saving Goal has been disabled.
+type SavingGoalWasDisabled struct{}
+
 // ThresholdWasSet is the Domain Event triggered by the Aggregate
 // when setting a new Threshold for the Account's Saving Goal.
 type ThresholdWasSet struct {
@@ -131,7 +135,26 @@ func (a *Account) ChangeSavingGoal(goal saving.Goal) error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("account.ChangeSavingGoal: failed to record domain even: %w", err)
+		return fmt.Errorf("account.ChangeSavingGoal: failed to record domain event: %w", err)
+	}
+
+	return nil
+}
+
+// DisableSavingGoal disabled the Account's Saving Goal previously set.
+//
+// ErrNoSavingGoal is returned if no Saving Goal was previously set on the Account.
+func (a *Account) DisableSavingGoal(goal saving.Goal) error {
+	if a.savingGoal == nil {
+		return fmt.Errorf("account.DisableSavingGoal: %w", ErrNoSavingGoal)
+	}
+
+	err := aggregate.RecordThat(a, eventually.Event{
+		Payload: SavingGoalWasDisabled{},
+	})
+
+	if err != nil {
+		return fmt.Errorf("account.DisableSavingGoal: failed to record domain event: %w", err)
 	}
 
 	return nil
