@@ -45,6 +45,13 @@ type withSavingGoalEntry struct {
 	savingGoal *saving.Goal
 }
 
+// NewWithSavingGoalsProjection returns a new instance of WithSavingGoalsProjection type.
+func NewWithSavingGoalsProjection() *WithSavingGoalsProjection {
+	return &WithSavingGoalsProjection{
+		accounts: make(map[string]withSavingGoalEntry),
+	}
+}
+
 // QueryType binds the WithSavingGoalsQuery type to the projection.
 func (*WithSavingGoalsProjection) QueryType() query.Query { return WithSavingGoalsQuery{} }
 
