@@ -9,6 +9,7 @@ import (
 
 	"github.com/eventually-rs/saving-goals-go/internal/domain/account"
 	"github.com/eventually-rs/saving-goals-go/internal/domain/monthly"
+	apphttp "github.com/eventually-rs/saving-goals-go/internal/http"
 	"github.com/eventually-rs/saving-goals-go/pkg/must"
 	"github.com/eventually-rs/saving-goals-go/pkg/shutdown"
 
@@ -118,24 +119,11 @@ func main() {
 	// </ProcessManagers> ----------------------------------------------------------------------------------------------
 
 	// <HttpServer> ----------------------------------------------------------------------------------------------------
-	// router := apphttp.NewRouter(
-	// 	planRepository,
-	// 	commandBus,
-	// 	queryBus,
-	// 	logger,
-	// 	telemetry.PrometheusEndpoint,
-	// 	telemetry.ServiceMeter,
-	// )
+	router := apphttp.NewRouter(commandBus, logger)
 
 	httpServer := &http.Server{
-		Addr: config.Server.Addr(),
-		// Handler: otelhttp.NewHandler(
-		// 	router,
-		// 	"box-content-service-api",
-		// 	// Don't collect metrics from this instrumentation, but rely on the instrumentation,
-		// 	// coming from otelchi.
-		// 	otelhttp.WithMeterProvider(metric.NoopMeterProvider{}),
-		// ),
+		Addr:    config.Server.Addr(),
+		Handler: router,
 	}
 
 	logger.Info("Server started",
