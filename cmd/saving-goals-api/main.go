@@ -9,7 +9,7 @@ import (
 
 	"github.com/eventually-rs/saving-goals-go/internal/domain/account"
 	"github.com/eventually-rs/saving-goals-go/internal/domain/monthly"
-	apphttp "github.com/eventually-rs/saving-goals-go/internal/http"
+	"github.com/eventually-rs/saving-goals-go/internal/httpapi"
 	"github.com/eventually-rs/saving-goals-go/pkg/must"
 	"github.com/eventually-rs/saving-goals-go/pkg/shutdown"
 
@@ -119,7 +119,7 @@ func main() {
 	// </ProcessManagers> ----------------------------------------------------------------------------------------------
 
 	// <HttpServer> ----------------------------------------------------------------------------------------------------
-	router := apphttp.NewRouter(commandBus, logger)
+	router := httpapi.NewRouter(commandBus, logger)
 
 	httpServer := &http.Server{
 		Addr:    config.Server.Addr(),

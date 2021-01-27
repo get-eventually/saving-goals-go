@@ -1,4 +1,4 @@
-package http
+package httpapi
 
 import (
 	"bytes"
@@ -13,18 +13,20 @@ import (
 	"go.uber.org/zap"
 )
 
+// NewRouter returns a new instance of the HTTP API router.
 func NewRouter(commandBus command.Dispatcher, logger *zap.Logger) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestLogger(zapchi.UseLogger(logger)))
+	r.Use(middleware.Recoverer)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		io.Copy(w, bytes.NewBufferString("{\"message\": \"Hello world!\"}\n"))
 	})
 
-	r.Route("/accounts/{id}", func(r chi.Router) {
-		r.Post("/change-saving-goal", nil)
-		r.Post("/set-new-threshold", nil)
+	r.Route("/accounts/{accountId}", func(r chi.Router) {
+		r.Post("/change-saving-goal", changeAccountSavingGoalHandler(commandBus))
+		r.Post("/set-new-threshold", setNewAccountSavingGoalThresholdHandler(commandBus))
 	})
 
 	return r
