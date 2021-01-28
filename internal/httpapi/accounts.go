@@ -5,11 +5,12 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/eventually-rs/saving-goals-go/internal/domain/account"
+	"github.com/eventually-rs/saving-goals-go/internal/domain/saving"
+
 	"github.com/eventually-rs/eventually-go"
 	"github.com/eventually-rs/eventually-go/aggregate"
 	"github.com/eventually-rs/eventually-go/command"
-	"github.com/eventually-rs/saving-goals-go/internal/domain/account"
-	"github.com/eventually-rs/saving-goals-go/internal/domain/saving"
 	"github.com/go-chi/chi"
 )
 

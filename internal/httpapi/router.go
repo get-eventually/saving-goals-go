@@ -8,13 +8,14 @@ import (
 	"github.com/eventually-rs/saving-goals-go/pkg/zapchi"
 
 	"github.com/eventually-rs/eventually-go/command"
+	"github.com/eventually-rs/eventually-go/eventstore"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"go.uber.org/zap"
 )
 
 // NewRouter returns a new instance of the HTTP API router.
-func NewRouter(commandBus command.Dispatcher, logger *zap.Logger) http.Handler {
+func NewRouter(commandBus command.Dispatcher, monthStore eventstore.Typed, logger *zap.Logger) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestLogger(zapchi.UseLogger(logger)))
@@ -28,6 +29,8 @@ func NewRouter(commandBus command.Dispatcher, logger *zap.Logger) http.Handler {
 		r.Post("/change-saving-goal", changeAccountSavingGoalHandler(commandBus))
 		r.Post("/set-new-threshold", setNewAccountSavingGoalThresholdHandler(commandBus))
 	})
+
+	r.Post("/internal/months/{year}/{month}/start", forceMonthCreation(monthStore))
 
 	return r
 }

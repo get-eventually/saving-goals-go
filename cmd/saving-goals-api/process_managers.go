@@ -54,3 +54,43 @@ func startCreateSpendingStartOfTheMonthPolicy(
 
 	return nil
 }
+
+func startRecordTransactionPolicy(
+	ctx context.Context,
+	commandBus command.Dispatcher,
+	queryBus monthly.QueryDispatcher,
+	accountStore eventstore.Typed,
+	checkpointer subscription.Checkpointer,
+	logger *zap.Logger,
+) error {
+	recordTransactionPolicy := monthly.RecordTransactionPolicy{
+		CommandDispatcher: commandBus,
+	}
+
+	recordTransactionSubscription, err := subscription.NewCatchUp(
+		"record-transaction",
+		accountStore,
+		accountStore,
+		checkpointer,
+	)
+
+	if err != nil {
+		return fmt.Errorf("startRecordTransactionPolicy: failed to start subscription: %w", err)
+	}
+
+	go func() {
+		logger.Info("monthly.RecordTransactionPolicy projector started")
+
+		recordTransactionPolicy := correlation.WrapProjection(recordTransactionPolicy)
+		projector := projection.NewProjector(
+			recordTransactionPolicy,
+			recordTransactionSubscription,
+		)
+
+		if err := projector.Start(ctx); err != nil {
+			logger.Error("monthly.RecordTransactionPolicy projector exited with error", zap.Error(err))
+		}
+	}()
+
+	return nil
+}

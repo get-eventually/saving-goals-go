@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/eventually-rs/saving-goals-go/internal/domain/account"
+	"github.com/eventually-rs/saving-goals-go/internal/domain/interval"
 	"github.com/eventually-rs/saving-goals-go/internal/domain/monthly"
 	"github.com/eventually-rs/saving-goals-go/internal/httpapi"
 	"github.com/eventually-rs/saving-goals-go/pkg/must"
@@ -16,10 +17,9 @@ import (
 	"github.com/eventually-rs/eventually-go/aggregate"
 	"github.com/eventually-rs/eventually-go/command"
 	"github.com/eventually-rs/eventually-go/eventstore"
-	"github.com/eventually-rs/eventually-go/eventstore/inmemory"
+	"github.com/eventually-rs/eventually-go/eventstore/postgres"
 	"github.com/eventually-rs/eventually-go/extension/correlation"
 	"github.com/eventually-rs/eventually-go/query"
-	"github.com/eventually-rs/eventually-go/subscription"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -45,23 +45,24 @@ func main() {
 	// </Logger> -------------------------------------------------------------------------------------------------------
 
 	// <EventStore> ----------------------------------------------------------------------------------------------------
-	// postgresEventStore, err := postgres.OpenEventStore(config.Database.DSN())
-	// must.NotFail(err)
+	postgresEventStore, err := postgres.OpenEventStore(config.Database.DSN())
+	must.NotFail(err)
 
-	// defer func() {
-	// 	if err := postgresEventStore.Close(); err != nil {
-	// 		logger.Error("Closing the event store exited with error", zap.Error(err))
-	// 	}
-	// }()
-
-	inMemoryEventStore := inmemory.NewEventStore()
+	defer func() {
+		if err := postgresEventStore.Close(); err != nil {
+			logger.Error("Closing the event store exited with error", zap.Error(err))
+		}
+	}()
 
 	// Use correlated Event Store to embed additional metadata into appended events.
-	// eventStore := eventstore.Store(postgresEventStore)
-	eventStore := eventstore.Store(inMemoryEventStore)
+	eventStore := eventstore.Store(postgresEventStore)
 	eventStore = correlation.WrapEventStore(eventStore, func() string {
 		return uuid.New().String()
 	})
+
+	must.NotFail(eventStore.Register(ctx, "month", map[string]interface{}{
+		"month_started": interval.MonthStarted{},
+	}))
 
 	must.NotFail(eventStore.Register(ctx, account.Type.Name(), map[string]interface{}{
 		"account_was_created":              account.WasCreated{},
@@ -78,14 +79,16 @@ func main() {
 		"monthly_spending_threshold_was_reached":    monthly.ThresholdWasReached{},
 	}))
 
+	monthEventStore, err := eventStore.Type(ctx, "month")
+	must.NotFail(err)
+
 	accountEventStore, err := eventStore.Type(ctx, account.Type.Name())
 	must.NotFail(err)
 
 	monthlySpendingEventStore, err := eventStore.Type(ctx, monthly.Type.Name())
 	must.NotFail(err)
 
-	checkpointer := subscription.NopCheckpointer{}
-	// checkpointer := postgresEventStore
+	checkpointer := postgresEventStore
 	// </EventStore> ---------------------------------------------------------------------------------------------------
 
 	// <Repositories> --------------------------------------------------------------------------------------------------
@@ -116,10 +119,11 @@ func main() {
 
 	// <ProcessManagers> -----------------------------------------------------------------------------------------------
 	must.NotFail(startCreateSpendingStartOfTheMonthPolicy(ctx, commandBus, queryBus, eventStore, checkpointer, logger))
+	must.NotFail(startRecordTransactionPolicy(ctx, commandBus, queryBus, accountEventStore, checkpointer, logger))
 	// </ProcessManagers> ----------------------------------------------------------------------------------------------
 
 	// <HttpServer> ----------------------------------------------------------------------------------------------------
-	router := httpapi.NewRouter(commandBus, logger)
+	router := httpapi.NewRouter(commandBus, monthEventStore, logger)
 
 	httpServer := &http.Server{
 		Addr:    config.Server.Addr(),

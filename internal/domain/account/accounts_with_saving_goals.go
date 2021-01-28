@@ -128,5 +128,5 @@ func (p *WithSavingGoalsProjection) Handle(ctx context.Context, query query.Quer
 		}
 	}()
 
-	return ch, nil
+	return WithSavingGoalsAnswer(ch), nil
 }

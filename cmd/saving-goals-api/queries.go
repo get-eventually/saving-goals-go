@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/eventually-rs/saving-goals-go/internal/domain/account"
 
@@ -18,7 +19,17 @@ func buildAccountsWithSavingGoalsReadModel(
 	logger *zap.Logger,
 ) (*account.WithSavingGoalsProjection, error) {
 	accountsWithSavingGoals := account.NewWithSavingGoalsProjection()
-	accountsWithSavingGoalsSubscription := subscription.NewVolatile("accounts-with-saving-goals", accountEventStore)
+
+	accountsWithSavingGoalsSubscription, err := subscription.NewCatchUp(
+		"accounts-with-saving-goals",
+		accountEventStore,
+		accountEventStore,
+		subscription.NopCheckpointer{},
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("buildAccountsWithSavingGoalsReadModel: failed to start subscription: %w", err)
+	}
 
 	go func() {
 		logger.Info("account.WithSavingGoals projector started")
