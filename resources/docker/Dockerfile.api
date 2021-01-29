@@ -8,16 +8,13 @@ RUN go mod download
 
 COPY . .
 
-RUN go build ./cmd/saving-goals-api
+RUN make build-saving-goals-api
 
 # ------------------------------------------------------------------------------
 
-FROM ubuntu:bionic
+FROM alpine:3.13
 
-RUN groupadd -r savinggoals && useradd --no-log-init -r -g savinggoals savinggoals
-USER savinggoals
-
-COPY --from=builder --chown=savinggoals:savinggoals \
+COPY --from=builder \
     /go/src/github.com/eventually-rs/saving-goals-go/saving-goals-api \
     /bin/saving-goals-api
 

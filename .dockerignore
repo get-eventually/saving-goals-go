@@ -1,0 +1,6 @@
+docker-compose.yml
+.gitignore
+LICENSE
+
+Dockerfile.api
+Dockerfile.consumers
