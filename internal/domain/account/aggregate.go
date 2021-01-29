@@ -2,6 +2,7 @@ package account
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/eventually-rs/saving-goals-go/internal/domain/saving"
 
@@ -72,7 +73,8 @@ type ThresholdWasSet struct {
 // when a new transaction involving the Account has taken place, modifying
 // the Account's Balance.
 type TransactionWasRecorded struct {
-	Amount float64
+	Amount     float64
+	HappenedAt time.Time
 }
 
 // Apply applies the Domain Event received onto the Aggregate Root
@@ -190,9 +192,12 @@ func (a *Account) SetNewThreshold(threshold float64) error {
 
 // RecordTransaction records a new transaction of the specified amount,
 // updating the Account's balance accordingly.
-func (a *Account) RecordTransaction(amount float64) error {
+func (a *Account) RecordTransaction(amount float64, happenedAt time.Time) error {
 	err := aggregate.RecordThat(a, eventually.Event{
-		Payload: TransactionWasRecorded{Amount: amount},
+		Payload: TransactionWasRecorded{
+			Amount:     amount,
+			HappenedAt: happenedAt,
+		},
 	})
 
 	if err != nil {

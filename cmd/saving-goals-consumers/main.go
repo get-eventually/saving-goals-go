@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	"github.com/eventually-rs/saving-goals-go/internal/app"
 	"github.com/eventually-rs/saving-goals-go/internal/consumer"
 	"github.com/eventually-rs/saving-goals-go/internal/domain/account"
 	"github.com/eventually-rs/saving-goals-go/pkg/must"
@@ -22,15 +23,12 @@ func main() {
 	defer cancel()
 
 	// <Config> --------------------------------------------------------------------------------------------------------
-	config, err := ParseConfig()
+	config, err := app.ParseConfig()
 	must.NotFail(err)
 	// </Config> -------------------------------------------------------------------------------------------------------
 
 	// <Logger> --------------------------------------------------------------------------------------------------------
-	loggerConfig := zap.NewProductionConfig()
-	loggerConfig.Level.SetLevel(zap.DebugLevel)
-
-	logger, err := loggerConfig.Build()
+	logger, err := app.NewLogger()
 	must.NotFail(err)
 
 	defer func() {
@@ -83,6 +81,7 @@ func main() {
 	accountCreatedConsumer := consumer.NewAccountCreated(
 		config.Kafka.Addr(),
 		commandBus,
+		logger,
 	)
 
 	accountTransactionRecordedConsumer := consumer.NewAccountTransactionRecorded(

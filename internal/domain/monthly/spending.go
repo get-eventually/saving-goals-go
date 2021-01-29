@@ -12,7 +12,7 @@ import (
 )
 
 // Type defines the MonthlySpending aggregate type.
-var Type = aggregate.NewType("montly-spending", func() aggregate.Root {
+var Type = aggregate.NewType("monthly-spending", func() aggregate.Root {
 	return new(Spending)
 })
 

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/eventually-rs/saving-goals-go/internal/app"
 	"github.com/eventually-rs/saving-goals-go/internal/domain/account"
 	"github.com/eventually-rs/saving-goals-go/internal/domain/interval"
 	"github.com/eventually-rs/saving-goals-go/internal/domain/monthly"
@@ -29,12 +30,12 @@ func main() {
 	defer cancel()
 
 	// <Config> --------------------------------------------------------------------------------------------------------
-	config, err := ParseConfig()
+	config, err := app.ParseConfig()
 	must.NotFail(err)
 	// </Config> -------------------------------------------------------------------------------------------------------
 
 	// <Logger> --------------------------------------------------------------------------------------------------------
-	logger, err := zap.NewProduction()
+	logger, err := app.NewLogger()
 	must.NotFail(err)
 
 	defer func() {

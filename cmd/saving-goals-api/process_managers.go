@@ -65,6 +65,7 @@ func startRecordTransactionPolicy(
 ) error {
 	recordTransactionPolicy := monthly.RecordTransactionPolicy{
 		CommandDispatcher: commandBus,
+		Logger:            logger,
 	}
 
 	recordTransactionSubscription, err := subscription.NewCatchUp(

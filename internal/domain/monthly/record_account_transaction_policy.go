@@ -6,6 +6,7 @@ import (
 
 	"github.com/eventually-rs/saving-goals-go/internal/domain/account"
 	"github.com/eventually-rs/saving-goals-go/internal/domain/interval"
+	"go.uber.org/zap"
 
 	"github.com/eventually-rs/eventually-go"
 	"github.com/eventually-rs/eventually-go/command"
@@ -17,15 +18,16 @@ var _ projection.Applier = RecordTransactionPolicy{}
 
 type RecordTransactionPolicy struct {
 	CommandDispatcher command.Dispatcher
+	Logger            *zap.Logger
 }
 
 func (rtp RecordTransactionPolicy) Apply(ctx context.Context, evt eventstore.Event) error {
-	if event, ok := evt.Payload.(account.RecordTransaction); ok {
+	if event, ok := evt.Payload.(account.TransactionWasRecorded); ok {
 		err := rtp.CommandDispatcher.Dispatch(ctx, eventually.Command{
 			Payload: RecordTransaction{
 				ID: ID{
-					AccountID: event.AccountID.String(),
-					Month:     interval.Month{}, // TODO: fix this
+					AccountID: evt.StreamName,
+					Month:     interval.MonthFromTime(event.HappenedAt),
 				},
 				Amount: event.Amount,
 			},

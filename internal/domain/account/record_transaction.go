@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/eventually-rs/eventually-go"
 	"github.com/eventually-rs/eventually-go/aggregate"
@@ -12,8 +13,9 @@ import (
 // RecordTransaction is the Domain Command used to record a new Transaction
 // involving the specified Account.
 type RecordTransaction struct {
-	AccountID aggregate.StringID
-	Amount    float64
+	AccountID  aggregate.StringID
+	Amount     float64
+	RecordedAt time.Time
 }
 
 // RecordTransactionCommandHandler is the Command Handler for RecordTransaction commands.
@@ -33,7 +35,7 @@ func (h RecordTransactionCommandHandler) Handle(ctx context.Context, cmd eventua
 		return fmt.Errorf("account.RecordTransaction: failed to get account: %w", err)
 	}
 
-	if err := account.(*Account).RecordTransaction(command.Amount); err != nil {
+	if err := account.(*Account).RecordTransaction(command.Amount, command.RecordedAt); err != nil {
 		return fmt.Errorf("account.RecordTransaction: failed to record transaction: %w", err)
 	}
 
