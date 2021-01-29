@@ -9,6 +9,7 @@ RUN go mod download
 COPY . .
 
 RUN go build ./cmd/saving-goals-consumers
+RUN go build ./cmd/saving-goals-cli
 
 # ------------------------------------------------------------------------------
 
@@ -20,5 +21,9 @@ USER savinggoals
 COPY --from=builder --chown=savinggoals:savinggoals \
     /go/src/github.com/eventually-rs/saving-goals-go/saving-goals-consumers \
     /bin/saving-goals-consumers
+
+COPY --from=builder --chown=savinggoals:savinggoals \
+    /go/src/github.com/eventually-rs/saving-goals-go/saving-goals-cli \
+    /bin/saving-goals-cli
 
 ENTRYPOINT ["saving-goals-consumers"]
