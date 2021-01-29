@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package messages;
+
+import "google/protobuf/timestamp.proto";
+
+message AccountCreated {
+  string account_id = 1;
+  google.protobuf.Timestamp recorded_at = 2;
+}
+
+message AccountTransactionRecorded {
+  string account_id = 1;
+  float amount = 2;
+  google.protobuf.Timestamp recorded_at = 3;
+}

@@ -2,12 +2,13 @@ package consumer
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 
 	"github.com/eventually-rs/saving-goals-go/internal/domain/account"
+	"github.com/eventually-rs/saving-goals-go/resources/messages"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/eventually-rs/eventually-go"
 	"github.com/eventually-rs/eventually-go/aggregate"
@@ -15,11 +16,6 @@ import (
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 )
-
-type AccountTransctionRecordedMessage struct {
-	AccountID string  `json:"accountId"`
-	Amount    float64 `json:"amount"`
-}
 
 type AccountTransactionRecorded struct {
 	kafkaReader *kafka.Reader
@@ -64,7 +60,6 @@ func (c AccountTransactionRecorded) Start(ctx context.Context) error {
 		}
 
 		if err != nil {
-			c.logger.Error("Failed to read message", zap.Error(err))
 			return fmt.Errorf("consumer.AccountTransactionRecorded: failed to read message from kafka: %w", err)
 		}
 
@@ -72,31 +67,46 @@ func (c AccountTransactionRecorded) Start(ctx context.Context) error {
 			zap.Binary("key", msg.Key),
 			zap.Binary("value", msg.Value))
 
-		var message AccountTransctionRecordedMessage
-		if err := json.Unmarshal(msg.Value, &message); err != nil {
+		if err := c.handle(ctx, msg); err != nil {
+			c.logger.Warn("Failed to handle message", zap.Error(err))
+
 			err = c.deadLetter.WriteMessages(ctx, kafka.Message{
 				Key:   msg.Key,
 				Value: msg.Value,
 			})
 
 			if err != nil {
-				return fmt.Errorf("consumer.AccountTransactionRecorded: failed to deadletter poisoned message: %w", err)
+				c.logger.Error("Failed to deadletter message", zap.Error(err))
+				continue
 			}
 		}
 
-		err = c.commandBus.Dispatch(ctx, eventually.Command{
-			Payload: account.RecordTransaction{
-				AccountID: aggregate.StringID(message.AccountID),
-				Amount:    message.Amount,
-			},
-		})
-
-		if err != nil {
-			return fmt.Errorf("consumer.AccountTransactionRecorded: failed to dispatch command: %w", err)
-		}
-
 		if err := c.kafkaReader.CommitMessages(ctx, msg); err != nil {
-			return fmt.Errorf("consumer.AccountTransactionRecorded: failed to commit message: %w", err)
+			c.logger.Error("Failed to commit message", zap.Error(err))
 		}
 	}
+}
+
+func (c AccountTransactionRecorded) handle(ctx context.Context, msg kafka.Message) error {
+	var message messages.AccountTransactionRecorded
+
+	if err := proto.Unmarshal(msg.Value, &message); err != nil {
+		if err != nil {
+			return fmt.Errorf("consumer.AccountTransactionRecorded: failed to unmarshal message: %w", err)
+		}
+	}
+
+	err := c.commandBus.Dispatch(ctx, eventually.Command{
+		Payload: account.RecordTransaction{
+			AccountID:  aggregate.StringID(message.AccountId),
+			Amount:     float64(message.Amount),
+			RecordedAt: message.RecordedAt.AsTime(),
+		},
+	})
+
+	if err != nil {
+		return fmt.Errorf("consumer.AccountTransactionRecorded: failed to dispatch command: %w", err)
+	}
+
+	return nil
 }
