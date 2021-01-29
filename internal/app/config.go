@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"fmt"
@@ -8,8 +8,9 @@ import (
 
 type Config struct {
 	Database Database
-	Jaeger   Jaeger
+	Server   Server
 	Kafka    Kafka
+	Jaeger   Jaeger
 }
 
 type Kafka struct {
@@ -28,6 +29,14 @@ type Jaeger struct {
 
 func (j Jaeger) Addr() string {
 	return fmt.Sprintf("%s:%d", j.Host, j.Port)
+}
+
+type Server struct {
+	Port uint16 `default:"8088"`
+}
+
+func (srv Server) Addr() string {
+	return fmt.Sprintf("0.0.0.0:%d", srv.Port)
 }
 
 type Database struct {
@@ -53,7 +62,7 @@ func ParseConfig() (Config, error) {
 	var config Config
 
 	if err := envconfig.Process("", &config); err != nil {
-		return Config{}, fmt.Errorf("config: failed to parse: %w", err)
+		return Config{}, fmt.Errorf("app.Config: failed to parse: %w", err)
 	}
 
 	return config, nil
