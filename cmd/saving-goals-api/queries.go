@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/eventually-rs/saving-goals-go/internal/domain/account"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/eventually-rs/eventually-go/extension/correlation"
 	"github.com/eventually-rs/eventually-go/projection"
 	"github.com/eventually-rs/eventually-go/subscription"
+	"github.com/eventually-rs/eventually-go/subscription/checkpoint"
 	"go.uber.org/zap"
 )
 
@@ -20,15 +20,10 @@ func buildAccountsWithSavingGoalsReadModel(
 ) (*account.WithSavingGoalsProjection, error) {
 	accountsWithSavingGoals := account.NewWithSavingGoalsProjection()
 
-	accountsWithSavingGoalsSubscription, err := subscription.NewCatchUp(
-		"accounts-with-saving-goals",
-		accountEventStore,
-		accountEventStore,
-		subscription.NopCheckpointer{},
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("buildAccountsWithSavingGoalsReadModel: failed to start subscription: %w", err)
+	accountsWithSavingGoalsSubscription := subscription.CatchUp{
+		SubscriptionName: "accounts-with-saving-goals",
+		EventStore:       accountEventStore,
+		Checkpointer:     checkpoint.NopCheckpointer,
 	}
 
 	go func() {

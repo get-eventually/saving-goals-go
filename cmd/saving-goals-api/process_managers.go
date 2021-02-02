@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/eventually-rs/saving-goals-go/internal/domain/monthly"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/eventually-rs/eventually-go/extension/correlation"
 	"github.com/eventually-rs/eventually-go/projection"
 	"github.com/eventually-rs/eventually-go/subscription"
+	"github.com/eventually-rs/eventually-go/subscription/checkpoint"
 	"go.uber.org/zap"
 )
 
@@ -19,7 +19,7 @@ func startCreateSpendingStartOfTheMonthPolicy(
 	commandBus command.Dispatcher,
 	queryBus monthly.QueryDispatcher,
 	eventStore eventstore.Store,
-	checkpointer subscription.Checkpointer,
+	checkpointer checkpoint.Checkpointer,
 	logger *zap.Logger,
 ) error {
 	createSpendingStartOfTheMonthPolicy := monthly.CreateSpendingStartOfTheMonthPolicy{
@@ -27,15 +27,10 @@ func startCreateSpendingStartOfTheMonthPolicy(
 		QueryDispatcher:   queryBus,
 	}
 
-	createSpendingStartOfTheMonthSubscription, err := subscription.NewCatchUp(
-		"create-spending-start-of-the-month",
-		eventStore,
-		eventStore,
-		checkpointer,
-	)
-
-	if err != nil {
-		return fmt.Errorf("startCreateSpendingStartOfTheMonthPolicy: failed to start subscription: %w", err)
+	createSpendingStartOfTheMonthSubscription := subscription.CatchUp{
+		SubscriptionName: "create-spending-start-of-the-month",
+		Checkpointer:     checkpointer,
+		EventStore:       eventStore,
 	}
 
 	go func() {
@@ -60,7 +55,7 @@ func startRecordTransactionPolicy(
 	commandBus command.Dispatcher,
 	queryBus monthly.QueryDispatcher,
 	accountStore eventstore.Typed,
-	checkpointer subscription.Checkpointer,
+	checkpointer checkpoint.Checkpointer,
 	logger *zap.Logger,
 ) error {
 	recordTransactionPolicy := monthly.RecordTransactionPolicy{
@@ -68,15 +63,10 @@ func startRecordTransactionPolicy(
 		Logger:            logger,
 	}
 
-	recordTransactionSubscription, err := subscription.NewCatchUp(
-		"record-transaction",
-		accountStore,
-		accountStore,
-		checkpointer,
-	)
-
-	if err != nil {
-		return fmt.Errorf("startRecordTransactionPolicy: failed to start subscription: %w", err)
+	recordTransactionSubscription := subscription.CatchUp{
+		SubscriptionName: "record-transaction",
+		EventStore:       accountStore,
+		Checkpointer:     checkpointer,
 	}
 
 	go func() {

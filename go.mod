@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
-	github.com/eventually-rs/eventually-go v0.0.0-20210118205318-ecc8b121d13c
+	github.com/eventually-rs/eventually-go v0.0.0-20210202130929-c04bb06ac729
 	github.com/frankban/quicktest v1.11.3 // indirect
 	github.com/go-chi/chi v1.5.1
 	github.com/golang/protobuf v1.4.2
